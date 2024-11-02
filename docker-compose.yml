@@ -1,0 +1,61 @@
+version: "3.8"
+
+services:
+  auth-server:
+    build:
+      context: ./authserv # путь к папке сервера авторизации
+    image: auth-server-app
+    container_name: auth-server
+    ports:
+      - "8080:8080" # Сервер авторизации работает на порту 8080
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/authdb
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=1234
+    depends_on:
+      - db # Зависимость от базы данных
+    networks:
+      - auth-app-network
+
+  resource-server:
+    build:
+      context: ./info-service # путь к папке ресурсного сервера
+    image: resource-server-app
+    container_name: resource-server
+    ports:
+      - "8081:8081" # Сервер ресурсов работает на порту 8081
+    networks:
+      - auth-app-network
+
+  front:
+    build:
+      context: ./front # путь к папке фронтенда
+    image: frontend-app
+    container_name: front
+    ports:
+      - "3000:3000"
+    depends_on:
+      - auth-server # Зависимость от сервера авторизации
+    networks:
+      - auth-app-network
+
+  db:
+    image: postgres:15
+    container_name: postgresdb
+    environment:
+      POSTGRES_DB: authdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Добавляем volume для данных
+    networks:
+      - auth-app-network
+
+volumes:
+  postgres_data: # Создание volume для сохранения данных Postgres
+
+networks:
+  auth-app-network: # Создание сети для связи между сервисами
+    driver: bridge
